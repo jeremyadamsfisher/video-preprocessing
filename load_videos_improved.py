@@ -1,3 +1,4 @@
+import subprocess
 import warnings
 from argparse import ArgumentParser
 from itertools import cycle
@@ -12,7 +13,7 @@ from util import rsync, download, crop_video
 warnings.filterwarnings("ignore")
 
 
-def load_videos(run_args):
+def run(run_args):
     """Run the data pipeline for a single video"""
     video_id, args = run_args
 
@@ -63,7 +64,11 @@ def load_videos(run_args):
             + ".mp4"
         )
         fp = Path(args.out_folder) / partition / fname
-        crop_video(video_file, start_time, end_time, left, top, right, bot, fp)
+        try:
+            crop_video(video_file, start_time, end_time, left, top, right, bot, fp)
+        except subprocess.CalledProcessError:
+            print("Error processing video %s" % video_id)
+            continue
 
     # Sync the data to GCS after processing each video
     rsync()
@@ -105,5 +110,5 @@ if __name__ == "__main__":
     video_ids = set(df["video_id"])
     with Pool(processes=args.workers) as pool:
         args_list = cycle([args])
-        for _ in tqdm(pool.imap_unordered(load_videos, zip(video_ids, args_list))):
+        for _ in tqdm(pool.imap_unordered(run, zip(video_ids, args_list))):
             None
