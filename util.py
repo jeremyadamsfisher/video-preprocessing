@@ -1,6 +1,12 @@
+import os
+import subprocess
+from itertools import cycle
+from multiprocessing import Pool
+
+import imageio
 from skimage import img_as_ubyte
 from skimage.transform import resize
-import imageio
+from tqdm import tqdm
 
 
 def bb_intersection_over_union(boxA, boxB):
@@ -119,12 +125,6 @@ def crop_bbox_from_frames(
     return out, [left, top, right, bot]
 
 
-from multiprocessing import Pool
-from itertools import cycle
-from tqdm import tqdm
-import os
-
-
 def scheduler(data_list, fn, args):
     device_ids = args.device_ids.split(",")
     pool = Pool(processes=args.workers)
@@ -155,3 +155,53 @@ def save(path, frames, format):
     else:
         print("Unknown format %s" % format)
         exit()
+
+
+def crop_video(video_file, start_time, end_time, left, top, right, bot, out_file):
+    """Crop the video"""
+    cmd = [
+        "ffmpeg",
+        "-i",
+        str(video_file),
+        "-ss",
+        str(start_time),
+        "-t",
+        str(end_time - start_time),
+        "-vf",
+        "crop={}:{}:{}:{}".format(right - left, bot - top, left, top),
+        "-c:a",
+        "copy",
+        out_file,
+    ]
+    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def rsync():
+    """Sync the data to GCS"""
+    cmd = [
+        "gsutil",
+        "-m",
+        "rsync",
+        "-r",
+        "./data",
+        "gs://vox-celeb",
+    ]
+    subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def download(video_file, video_id, youtube):
+    """Download the video, audio, and subtitles from youtube"""
+    cmd = [
+        youtube,
+        "-f",
+        "''best/mp4''",
+        "--write-auto-sub",
+        "--write-sub",
+        "--sub-lang",
+        "en",
+        "--skip-unavailable-fragments",
+        "https://www.youtube.com/watch?v=" + video_id,
+        "--output",
+        video_file,
+    ]
+    subprocess.call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
