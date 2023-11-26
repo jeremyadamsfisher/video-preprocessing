@@ -122,7 +122,7 @@ class COCODemo(object):
         self.masker = Masker(threshold=mask_threshold, padding=1)
 
         # used to make colors for each class
-        self.palette = torch.tensor([2 ** 25 - 1, 2 ** 15 - 1, 2 ** 21 - 1])
+        self.palette = torch.tensor([2**25 - 1, 2**15 - 1, 2**21 - 1])
 
         self.cpu_device = torch.device("cpu")
         self.confidence_threshold = confidence_threshold
@@ -320,11 +320,9 @@ class COCODemo(object):
         """
         masks = predictions.get_field("mask")
         masks_per_dim = self.masks_per_dim
-        masks = L.interpolate(
-            masks.float(), scale_factor=1 / masks_per_dim
-        ).byte()
+        masks = L.interpolate(masks.float(), scale_factor=1 / masks_per_dim).byte()
         height, width = masks.shape[-2:]
-        max_masks = masks_per_dim ** 2
+        max_masks = masks_per_dim**2
         masks = masks[:max_masks]
         # handle case where we have less detections than max_masks
         if len(masks) < max_masks:
@@ -364,14 +362,16 @@ class COCODemo(object):
             x, y = box[:2]
             s = template.format(label, score)
             cv2.putText(
-                image, s, (x, y), cv2.FONT_HERSHEY_SIMPLEX, .5, (255, 255, 255), 1
+                image, s, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1
             )
 
         return image
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 from maskrcnn_benchmark.structures.keypoint import PersonKeypoints
+
 
 def vis_keypoints(img, kps, kp_thresh=2, alpha=0.7):
     """Visualizes keypoints (adapted from vis_one_image).
@@ -381,7 +381,7 @@ def vis_keypoints(img, kps, kp_thresh=2, alpha=0.7):
     kp_lines = PersonKeypoints.CONNECTIONS
 
     # Convert from plt 0-1 RGBA colors to 0-255 BGR colors for opencv.
-    cmap = plt.get_cmap('rainbow')
+    cmap = plt.get_cmap("rainbow")
     colors = [cmap(i) for i in np.linspace(0, 1, len(kp_lines) + 2)]
     colors = [(c[2] * 255, c[1] * 255, c[0] * 255) for c in colors]
 
@@ -390,26 +390,40 @@ def vis_keypoints(img, kps, kp_thresh=2, alpha=0.7):
 
     # Draw mid shoulder / mid hip first for better visualization.
     mid_shoulder = (
-        kps[:2, dataset_keypoints.index('right_shoulder')] +
-        kps[:2, dataset_keypoints.index('left_shoulder')]) / 2.0
+        kps[:2, dataset_keypoints.index("right_shoulder")]
+        + kps[:2, dataset_keypoints.index("left_shoulder")]
+    ) / 2.0
     sc_mid_shoulder = np.minimum(
-        kps[2, dataset_keypoints.index('right_shoulder')],
-        kps[2, dataset_keypoints.index('left_shoulder')])
+        kps[2, dataset_keypoints.index("right_shoulder")],
+        kps[2, dataset_keypoints.index("left_shoulder")],
+    )
     mid_hip = (
-        kps[:2, dataset_keypoints.index('right_hip')] +
-        kps[:2, dataset_keypoints.index('left_hip')]) / 2.0
+        kps[:2, dataset_keypoints.index("right_hip")]
+        + kps[:2, dataset_keypoints.index("left_hip")]
+    ) / 2.0
     sc_mid_hip = np.minimum(
-        kps[2, dataset_keypoints.index('right_hip')],
-        kps[2, dataset_keypoints.index('left_hip')])
-    nose_idx = dataset_keypoints.index('nose')
+        kps[2, dataset_keypoints.index("right_hip")],
+        kps[2, dataset_keypoints.index("left_hip")],
+    )
+    nose_idx = dataset_keypoints.index("nose")
     if sc_mid_shoulder > kp_thresh and kps[2, nose_idx] > kp_thresh:
         cv2.line(
-            kp_mask, tuple(mid_shoulder), tuple(kps[:2, nose_idx]),
-            color=colors[len(kp_lines)], thickness=2, lineType=cv2.LINE_AA)
+            kp_mask,
+            tuple(mid_shoulder),
+            tuple(kps[:2, nose_idx]),
+            color=colors[len(kp_lines)],
+            thickness=2,
+            lineType=cv2.LINE_AA,
+        )
     if sc_mid_shoulder > kp_thresh and sc_mid_hip > kp_thresh:
         cv2.line(
-            kp_mask, tuple(mid_shoulder), tuple(mid_hip),
-            color=colors[len(kp_lines) + 1], thickness=2, lineType=cv2.LINE_AA)
+            kp_mask,
+            tuple(mid_shoulder),
+            tuple(mid_hip),
+            color=colors[len(kp_lines) + 1],
+            thickness=2,
+            lineType=cv2.LINE_AA,
+        )
 
     # Draw the keypoints.
     for l in range(len(kp_lines)):
@@ -419,16 +433,26 @@ def vis_keypoints(img, kps, kp_thresh=2, alpha=0.7):
         p2 = kps[0, i2], kps[1, i2]
         if kps[2, i1] > kp_thresh and kps[2, i2] > kp_thresh:
             cv2.line(
-                kp_mask, p1, p2,
-                color=colors[l], thickness=2, lineType=cv2.LINE_AA)
+                kp_mask, p1, p2, color=colors[l], thickness=2, lineType=cv2.LINE_AA
+            )
         if kps[2, i1] > kp_thresh:
             cv2.circle(
-                kp_mask, p1,
-                radius=3, color=colors[l], thickness=-1, lineType=cv2.LINE_AA)
+                kp_mask,
+                p1,
+                radius=3,
+                color=colors[l],
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
         if kps[2, i2] > kp_thresh:
             cv2.circle(
-                kp_mask, p2,
-                radius=3, color=colors[l], thickness=-1, lineType=cv2.LINE_AA)
+                kp_mask,
+                p2,
+                radius=3,
+                color=colors[l],
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
 
     # Blend the keypoints.
     return cv2.addWeighted(img, 1.0 - alpha, kp_mask, alpha, 0)
